@@ -1,4 +1,6 @@
+
 requests
 pytz
-ccxt
+yfinance
 pandas
+
