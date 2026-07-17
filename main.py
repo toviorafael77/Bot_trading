@@ -1,33 +1,34 @@
 import time
-import requests
 import pytz
 from datetime import datetime
-import os
+
+def analizar_mercado():
+    # Estrategia simulada de Order Blocks y FVG
+    # Aquí es donde pondrías tu lógica matemática de trading
+    senal = "ESPERANDO"
+    hora_entrada = datetime.now(pytz.timezone('America/Bogota')).strftime('%H:%M:%S')
+    
+    # Ejemplo: lógica simplificada para demostración
+    # En el futuro, aquí irán tus cálculos con Fibonacci, etc.
+    if datetime.now().second % 20 == 0: # Simulador de señal
+        senal = "🟢 COMPRA (BUY) AHORA"
+    elif datetime.now().second % 40 == 0:
+        senal = "🔴 VENTA (SELL) AHORA"
+        
+    return senal, hora_entrada
 
 def run_bot():
-    print("--- INICIANDO BOT DE TRADING CON ESTRATEGIA ---")
-    
-    activos = ["EURUSD"]
-    
+    print("--- BOT DE TRADING ACTIVO ---")
     while True:
-        try:
-            zona_horaria = pytz.timezone('America/Bogota')
-            ahora = datetime.now(zona_horaria).strftime('%H:%M:%S')
+        senal, hora = analizar_mercado()
+        
+        # Solo imprime si hay una señal real para no llenar el log
+        if senal != "ESPERANDO":
+            print(f"[{hora}] SEÑAL DETECTADA: {senal}")
+        else:
+            print(f"[{hora}] Analizando mercado... sin entrada clara.")
             
-            print(f"--- ANALIZANDO MERCADO - {ahora} ---")
-            
-            for activo in activos:
-                senal_compra = "🟢 COMPRA (BUY) 🚀"
-                senal_venta = "🔴 VENTA (SELL) 📉"
-                
-                print(f"[{activo}] Análisis: Order Block detectado, buscando confirmación en FVG...")
-                print(f"[{activo}] {senal_compra} - Esperando confirmación para ejecutar.")
-                
-            time.sleep(60) 
-            
-        except Exception as e:
-            print(f"Error detectado: {e}")
-            time.sleep(10)
+        time.sleep(5) # Revisión cada 5 segundos
 
 if __name__ == "__main__":
     run_bot()
