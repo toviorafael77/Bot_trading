@@ -6,37 +6,44 @@ from datetime import datetime
 symbols = {"GBP/USD": "GBPUSD=X", "Bitcoin": "BTC-USD"}
 
 def obtener_datos(symbol):
-    # Obtenemos velas de 1 minuto para el análisis en tiempo real
+    # Descargamos los datos
     data = yf.download(symbol, period="1d", interval="1m", progress=False)
+    # Nos aseguramos de devolver las últimas 3 velas
     return data.tail(3)
 
 def verificar_fvg(df):
     if len(df) < 3: return None
-    v1, v2, v3 = df.iloc[0], df.iloc[1], df.iloc[2]
+    
+    # Extraemos el valor numérico (escalar) de cada vela
+    # Usamos .iloc[0] para la fila y accedemos al valor
+    v1_high = df.iloc[0]['High']
+    v1_low  = df.iloc[0]['Low']
+    v2_open = df.iloc[1]['Open']
+    v2_close = df.iloc[1]['Close']
+    v3_high = df.iloc[2]['High']
+    v3_low  = df.iloc[2]['Low']
     
     # Regla: FVG Alcista (Mecha 1 sup < Mecha 3 inf)
-    if v1['High'] < v3['Low'] and v2['Close'] > v2['Open']:
+    if v1_high < v3_low and v2_close > v2_open:
         return "compra 🟢"
     # Regla: FVG Bajista (Mecha 1 inf > Mecha 3 sup)
-    elif v1['Low'] > v3['High'] and v2['Close'] < v2['Open']:
+    elif v1_low > v3_high and v2_close < v2_open:
         return "venta 🛑"
     return None
 
-print("Bot listo. Monitoreando mercado para scalping...")
+print("Bot corregido y activo...")
 
 while True:
     for name, ticker in symbols.items():
-        df = obtener_datos(ticker)
-        senal = verificar_fvg(df)
-        
-        if senal:
-            # La hora del mensaje es el momento de confirmación
-            # Entras al inicio del siguiente minuto
-            hora_confirmacion = datetime.now().strftime("%H:%M")
-            print(f"Señal {senal}")
-            print(f"Entrada sugerida {hora_confirmacion}")
-            print("Acción: Entrar al inicio del siguiente minuto.")
-            print("-" * 30)
+        try:
+            df = obtener_datos(ticker)
+            senal = verificar_fvg(df)
             
-    # Pausa estratégica para evitar saturar el servidor
-    time.sleep(55) 
+            if senal:
+                hora = datetime.now().strftime("%H:%M")
+                print(f"Señal {senal}")
+                print(f"Entrada sugerida {hora}")
+        except Exception as e:
+            print(f"Error analizando {name}: {e}")
+            
+    time.sleep(60) 
