@@ -1,59 +1,26 @@
-import yfinance as yf
-import time
-import pytz
-from datetime import datetime
+//@version=5
+indicator("Scalping FVG - Aviso Anticipado", overlay=true)
 
-def detectar_fvg_ob(df):
-    v = df.iloc[-3:]
-    # FVG alcista: el minimo de la vela actual es mayor al maximo de hace dos velas
-    if v['Low'].iloc[-1] > v['High'].iloc[-3]:
-        return "FVG Alcista", v['Low'].iloc[-3]
-    # FVG bajista: el maximo de la vela actual es menor al minimo de hace dos velas
-    elif v['High'].iloc[-1] < v['Low'].iloc[-3]:
-        return "FVG Bajista", v['High'].iloc[-3]
-    return None, 0
+// Detección de FVG en desarrollo (Vela 1 y 2 formadas)
+// El bot evalúa el espacio antes de que cierre la vela 3
+bullish_setup = high[1] < low[0] // Espacio alcista en formación
+bearish_setup = low[1] > high[0] // Espacio bajista en formación
 
-def run_bot():
-    print("--- SCANNER SMC (MODO PREPARACIÓN 1 MIN) ACTIVO ---", flush=True)
-    simbolos = {'BTC': 'BTC-USD', 'GBP/USD': 'GBPUSD=X'}
-    
-    while True:
-        zona_horaria = pytz.timezone('America/Bogota')
-        ahora = datetime.now(zona_horaria)
-        
-        # CAMBIO: Analiza en el minuto 2, 6, 10... para darte tiempo de preparación
-        if ahora.minute % 4 == 2 and 50 <= ahora.second <= 59:
-            print(f"\n--- EVALUANDO CICLO ANTICIPADO: {ahora.strftime('%H:%M:%S')} ---", flush=True)
-            
-            for nombre, ticker in simbolos.items():
-                try:
-                    df = yf.Ticker(ticker).history(period="1d", interval="1m").tail(10)
-                    tipo, zona = detectar_fvg_ob(df)
-                    
-                    if tipo:
-                        # Calcula el siguiente minuto múltiplo de 4
-                        minuto_proximo = ((ahora.minute // 4) + 1) * 4
-                        hora_entrada = ahora.replace(minute=minuto_proximo % 60, second=0).strftime('%H:%M')
-                        
-                        print(f"⚠️ PREPARARSE: {nombre} en zona {tipo}", flush=True)
-                        print(f"Señal: {'🟢 COMPRA' if 'Alcista' in tipo else '🛑 VENTA'}", flush=True)
-                        print(f"Entrada exacta: {hora_entrada}", flush=True)
-                        print(f"Zona de precio: {zona:.4f}", flush=True)
-                        print("-" * 30, flush=True)
-                    else:
-                        print(f"ℹ️ {nombre}: Analizado. Sin patrones claros en este ciclo.", flush=True)
-                except Exception as e:
-                    print(f"Error analizando {nombre}: {e}", flush=True)
-            
-            time.sleep(12)
-        
-        # Latido para saber que sigue vivo
-        if ahora.second == 0:
-            print(f"⏱️ Bot activo... {ahora.strftime('%H:%M:%S')}. Esperando ciclo de análisis.", flush=True)
-            time.sleep(1.5)
-            
-        time.sleep(0.5)
+// Alerta con tiempo de preparación
+if bullish_setup
+    label.new(bar_index, high, text="PREPARAR COMPRA 🟢\nAnalizando zona...", color=color.orange, style=label.style_label_down)
+    alert("Señal compra 🟢 - Preparar entrada en 1-2 min", alert.freq_once_per_bar)
 
-if __name__ == "__main__":
-    run_bot()
-    
+if bearish_setup
+    label.new(bar_index, low, text="PREPARAR VENTA 🛑\nAnalizando zona...", color=color.orange, style=label.style_line)
+    alert("Señal venta 🛑 - Preparar entrada en 1-2 min", alert.freq_once_per_bar)
+
+// Ejecución del formato fijo cuando la señal se confirma al cerrar la vela
+bullish_fvg = high[2] < low[0] and close[1] > open[1]
+bearish_fvg = low[2] > high[0] and close[1] < open[1]
+
+if bullish_fvg
+    label.new(bar_index, low, text="Señal compra 🟢\nEntrada sugerida " + str.tostring(hour) + ":" + str.tostring(minute), color=color.green, textcolor=color.white, style=label.style_label_up)
+
+if bearish_fvg
+    label.new(bar_index, high, text="Señal venta 🛑\nEntrada sugerida " + str.tostring(hour) + ":" + str.tostring(minute), color=color.red, textcolor=color.white, style=label.style_label_down)
