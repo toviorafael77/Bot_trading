@@ -1,55 +1,50 @@
-import ccxt
+import yfinance as yf
 import time
 import pytz
 from datetime import datetime
-import os
 
-# Configuración de mercado
-exchange = ccxt.binance({
-    'apiKey': os.getenv('BINANCE_API_KEY'),
-    'secret': os.getenv('BINANCE_SECRET'),
-    'enableRateLimit': True,
-})
-
-def obtener_precio(symbol):
-    ticker = exchange.fetch_ticker(symbol)
-    return ticker['last']
-
-def analizar_estrategia(symbol, precio):
-    # AQUÍ IRÍA TU LÓGICA DE ORDER BLOCKS Y FVG
-    # Esto es una base lógica para que detectes patrones
-    print(f"[{symbol}] Precio actual: {precio}")
-    
-    # Ejemplo de lógica de patrón (debes ajustar esto a tus fórmulas)
-    # senal = "ESPERANDO"
-    # Si precio < soporte: senal = "🟢 COMPRA"
-    # Si precio > resistencia: senal = "🔴 VENTA"
-    return "Analizando patrones..."
+def obtener_precio(ticker_symbol):
+    try:
+        ticker = yf.Ticker(ticker_symbol)
+        data = ticker.history(period="1d")
+        return data['Close'].iloc[-1]
+    except:
+        return 0
 
 def run_bot():
-    print("--- BOT DE TRADING EN MERCADO REAL INICIADO ---")
-    simbolos = ['BTC/USDT', 'GBP/USD'] # Nota: GBP/USD requiere API de Forex
+    print("--- BOT DE TRADING CON ALERTAS ANTICIPADAS ---")
+    simbolos = {'BTC': 'BTC-USD', 'GBP/USD': 'GBPUSD=X'}
     
     while True:
-        try:
-            zona_horaria = pytz.timezone('America/Bogota')
-            ahora = datetime.now(zona_horaria).strftime('%H:%M:%S')
+        zona_horaria = pytz.timezone('America/Bogota')
+        ahora = datetime.now(zona_horaria)
+        minuto = ahora.minute
+        segundo = ahora.second
+        
+        # Lógica: ciclo de 4 minutos. 
+        # Detectar si estamos en el minuto 3 (el minuto previo al cierre del ciclo de 4)
+        es_minuto_previo = (minuto + 1) % 4 == 0
+        
+        print(f"\n--- HORA COLOMBIA: {ahora.strftime('%H:%M:%S')} ---")
+        
+        for nombre, ticker in simbolos.items():
+            precio = obtener_precio(ticker)
+            print(f"[{nombre}] Precio actual: {precio:.4f}")
             
-            print(f"\n--- HORA COLOMBIA: {ahora} ---")
-            
-            for s in simbolos:
-                try:
-                    precio = obtener_precio(s)
-                    estado = analizar_estrategia(s, precio)
-                    print(f"[{s}] {estado}")
-                except Exception as e:
-                    print(f"Error analizando {s}: {e}")
-            
-            time.sleep(60) # Espera 60 segundos antes del siguiente ciclo
-            
-        except Exception as e:
-            print(f"Error general: {e}")
-            time.sleep(10)
+            # Lógica de señales (Aquí aplicarías tu estrategia de Order Block/FVG)
+            # Simulamos análisis:
+            if es_minuto_previo:
+                print(f"⚠️ {nombre}: ¡ALERTA ANTICIPADA! Preparar entrada para el minuto {(minuto + 1) % 60}")
+                
+                # Simulador de señal de dirección basada en precio (reemplaza con tu lógica real)
+                if segundo % 2 == 0:
+                    print(f"🟢 SEÑAL COMPRA | Entrada estimada: {(minuto + 1) % 60}:00")
+                else:
+                    print(f"🛑 SEÑAL VENTA  | Entrada estimada: {(minuto + 1) % 60}:00")
+            else:
+                print(f"[{nombre}] Analizando patrones... esperando ciclo de entrada.")
+        
+        time.sleep(20) # Revisión cada 20 segundos para no perder la ventana de 1 minuto
 
 if __name__ == "__main__":
     run_bot()
