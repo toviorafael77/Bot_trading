@@ -1,26 +1,27 @@
-//@version=5
-indicator("Scalping FVG - Aviso Anticipado", overlay=true)
+# main.py - Estructura básica para bot en Python
+import time
 
-// Detección de FVG en desarrollo (Vela 1 y 2 formadas)
-// El bot evalúa el espacio antes de que cierre la vela 3
-bullish_setup = high[1] < low[0] // Espacio alcista en formación
-bearish_setup = low[1] > high[0] // Espacio bajista en formación
+def detectar_fvg(velas):
+    # Aquí debes poner la lógica que calcula el FVG usando tus datos
+    # Ejemplo: Si la diferencia de precios cumple la condición:
+    print("Analizando mercado...")
+    # Si detecta algo:
+    return "COMPRA" 
 
-// Alerta con tiempo de preparación
-if bullish_setup
-    label.new(bar_index, high, text="PREPARAR COMPRA 🟢\nAnalizando zona...", color=color.orange, style=label.style_label_down)
-    alert("Señal compra 🟢 - Preparar entrada en 1-2 min", alert.freq_once_per_bar)
+def ejecutar_orden(senal):
+    if senal == "COMPRA":
+        print("Señal compra 🟢 - Entrada sugerida:", time.strftime("%H:%M"))
+        # Aquí iría el código de tu API (ej: api.buy())
+    elif senal == "VENTA":
+        print("Señal venta 🛑 - Entrada sugerida:", time.strftime("%H:%M"))
 
-if bearish_setup
-    label.new(bar_index, low, text="PREPARAR VENTA 🛑\nAnalizando zona...", color=color.orange, style=label.style_line)
-    alert("Señal venta 🛑 - Preparar entrada en 1-2 min", alert.freq_once_per_bar)
-
-// Ejecución del formato fijo cuando la señal se confirma al cerrar la vela
-bullish_fvg = high[2] < low[0] and close[1] > open[1]
-bearish_fvg = low[2] > high[0] and close[1] < open[1]
-
-if bullish_fvg
-    label.new(bar_index, low, text="Señal compra 🟢\nEntrada sugerida " + str.tostring(hour) + ":" + str.tostring(minute), color=color.green, textcolor=color.white, style=label.style_label_up)
-
-if bearish_fvg
-    label.new(bar_index, high, text="Señal venta 🛑\nEntrada sugerida " + str.tostring(hour) + ":" + str.tostring(minute), color=color.red, textcolor=color.white, style=label.style_label_down)
+# Bucle infinito para que el bot no se detenga en el servidor
+while True:
+    try:
+        senal = detectar_fvg(None)
+        ejecutar_orden(senal)
+        time.sleep(60) # Espera 1 minuto entre análisis
+    except Exception as e:
+        print(f"Error: {e}")
+        time.sleep(10)
+        
